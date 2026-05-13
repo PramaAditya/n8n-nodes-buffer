@@ -6,30 +6,35 @@ import type {
 } from 'n8n-workflow';
 import { NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
-export class Example implements INodeType {
+export class BufferUploader implements INodeType {
 	description: INodeTypeDescription = {
-		displayName: 'Example',
-		name: 'example',
-		icon: { light: 'file:example.svg', dark: 'file:example.dark.svg' },
-		group: ['input'],
+		displayName: 'Buffer Uploader',
+		name: 'bufferUploader',
+		icon: 'file:buffer.svg',
+		group: ['output'],
 		version: 1,
-		description: 'Basic Example Node',
+		subtitle: '={{$parameter["text"]}}',
+		description: 'Upload content to Buffer',
 		defaults: {
-			name: 'Example',
+			name: 'Buffer Uploader',
 		},
+		usableAsTool: true,
 		inputs: [NodeConnectionTypes.Main],
 		outputs: [NodeConnectionTypes.Main],
-		usableAsTool: true,
-		properties: [
-			// Node properties which the user gets displayed and
-			// can change on the node.
+		credentials: [
 			{
-				displayName: 'My String',
-				name: 'myString',
+				name: 'bufferApi',
+				required: true,
+			},
+		],
+		properties: [
+			{
+				displayName: 'Text',
+				name: 'text',
 				type: 'string',
 				default: '',
-				placeholder: 'Placeholder value',
-				description: 'The description text',
+				placeholder: 'Hello from n8n!',
+				description: 'The text to upload to Buffer',
 			},
 		],
 	};
@@ -64,7 +69,7 @@ export class Example implements INodeType {
 						// If the error thrown already contains the context property,
 						// only append the itemIndex
 						error.context.itemIndex = itemIndex;
-						throw error;
+						throw new NodeOperationError(this.getNode(), error, { itemIndex });
 					}
 					throw new NodeOperationError(this.getNode(), error, {
 						itemIndex,

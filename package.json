@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-buffer",
-	"version": "0.2.0",
+	"version": "0.2.3",
 	"description": "n8n community node for Buffer API",
 	"license": "MIT",
 	"homepage": "",
@@ -28,12 +28,13 @@
 	],
 	"n8n": {
 		"n8nNodesApiVersion": 1,
-		"strict": true,
+		"strict": false,
 		"credentials": [
 			"dist/credentials/BufferApi.credentials.js"
 		],
 		"nodes": [
-			"dist/nodes/Buffer/BufferUploader.node.js"
+			"dist/nodes/Buffer/BufferUploader.node.js",
+			"dist/nodes/YtDlpS3/YtDlpS3.node.js"
 		]
 	},
 	"devDependencies": {
@@ -44,5 +45,9 @@
 	},
 	"peerDependencies": {
 		"n8n-workflow": "*"
+	},
+	"dependencies": {
+		"@aws-sdk/client-s3": "^3.1045.0",
+		"@aws-sdk/lib-storage": "^3.1045.0"
 	}
 }

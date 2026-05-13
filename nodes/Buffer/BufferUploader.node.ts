@@ -281,6 +281,18 @@ export class BufferUploader implements INodeType {
 				description: 'The type of Instagram post',
 			},
 			{
+				displayName: 'Share to Feed (Instagram)',
+				name: 'instagramShouldShareToFeed',
+				type: 'boolean',
+				displayOptions: {
+					show: {
+						service: ['instagram'],
+					},
+				},
+				default: true,
+				description: 'Whether post should be shared to feed',
+			},
+			{
 				displayName: 'Google Business Post Type',
 				name: 'googleBusinessPostType',
 				type: 'options',
@@ -429,10 +441,12 @@ export class BufferUploader implements INodeType {
 					(metadata.facebook as IDataObject).type = facebookPostType;
 				} else if (service === 'instagram') {
 					const instagramPostType = this.getNodeParameter('instagramPostType', i, 'post') as string;
+					const shouldShareToFeed = this.getNodeParameter('instagramShouldShareToFeed', i, true) as boolean;
 					if (!metadata.instagram) {
 						metadata.instagram = {};
 					}
 					(metadata.instagram as IDataObject).type = instagramPostType;
+					(metadata.instagram as IDataObject).shouldShareToFeed = shouldShareToFeed;
 				} else if (service === 'googlebusiness') {
 					const googleBusinessPostType = this.getNodeParameter('googleBusinessPostType', i, 'whats_new') as string;
 					if (!metadata.google) {

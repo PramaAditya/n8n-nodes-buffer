@@ -32,8 +32,22 @@ export class BufferApi implements ICredentialType {
 
 	test: ICredentialTestRequest = {
 		request: {
-			baseURL: 'https://api.bufferapp.com/1',
-			url: '/user.json',
+			baseURL: 'https://api.buffer.com',
+			url: '',
+			method: 'POST',
+			body: {
+				query: `
+				query GetOrganizations {
+					account {
+						organizations {
+							id
+							name
+							ownerEmail
+						}
+					}
+				}
+				`,
+			},
 		},
 	};
 }

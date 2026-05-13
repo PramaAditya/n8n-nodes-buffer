@@ -1,6 +1,6 @@
 {
 	"name": "n8n-nodes-buffer",
-	"version": "0.1.3",
+	"version": "0.2.0",
 	"description": "n8n community node for Buffer API",
 	"license": "MIT",
 	"homepage": "",

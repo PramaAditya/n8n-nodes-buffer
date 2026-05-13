@@ -10,7 +10,9 @@ import {
 import { spawn } from 'child_process';
 import { S3Client } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
-import { PassThrough } from 'stream';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 
 export class YtDlpS3 implements INodeType {
 	description: INodeTypeDescription = {
@@ -118,27 +120,19 @@ export class YtDlpS3 implements INodeType {
 
 				const s3Client = new S3Client(s3ClientConfig);
 
-				// Set up PassThrough stream
-				const passThrough = new PassThrough();
+				// Generate temp file path
+				const tempFilePath = path.join(os.tmpdir(), `yt-dlp-${Date.now()}-${Math.floor(Math.random() * 10000)}.mp4`);
 
-				// Setup upload promise
-				const upload = new Upload({
-					client: s3Client,
-					params: {
-						Bucket: bucket,
-						Key: objectKey,
-						Body: passThrough,
-						ContentType: 'video/mp4', // Assuming mp4 for general yt-dlp output
-					},
-				});
-
-				const uploadPromise = upload.done();
-
-				// Spawn yt-dlp
+				// Spawn yt-dlp to download and remux
+				// --recode-video mp4 ensures it's h264/mp4
+				// We enforce specific H.264 profile (Main, level 4.2), colorspace, and AAC audio to guarantee 100% compatibility with Buffer/Facebook/Instagram
+				// --postprocessor-args "ffmpeg:-movflags faststart" ensures the moov atom is at the front
 				const ytDlpProcess = spawn('yt-dlp', [
 					'-f', format,
-					'-o', '-', // Output to stdout
-					'--quiet', // Less console noise
+					'--recode-video', 'mp4',
+					'--postprocessor-args', 'ffmpeg:-profile:v main -level:v 4.2 -pix_fmt yuv420p -color_primaries bt709 -color_trc bt709 -colorspace bt709 -c:a aac -ar 44100 -movflags +faststart',
+					'-o', tempFilePath,
+					'--quiet',
 					'--no-warnings',
 					url
 				]);
@@ -148,9 +142,6 @@ export class YtDlpS3 implements INodeType {
 				ytDlpProcess.stderr.on('data', (data) => {
 					errorOutput += data.toString();
 				});
-
-				// Pipe yt-dlp stdout to the S3 PassThrough stream
-				ytDlpProcess.stdout.pipe(passThrough);
 
 				// Wait for process to exit
 				await new Promise<void>((resolve, reject) => {
@@ -166,8 +157,32 @@ export class YtDlpS3 implements INodeType {
 					});
 				});
 
-				// Wait for S3 upload to finish
-				const uploadResult = await uploadPromise;
+				// Verify file exists
+				if (!fs.existsSync(tempFilePath)) {
+					throw new NodeOperationError(this.getNode(), 'Video file was not created by yt-dlp');
+				}
+
+				// Upload to S3
+				const fileStream = fs.createReadStream(tempFilePath);
+
+				const upload = new Upload({
+					client: s3Client,
+					params: {
+						Bucket: bucket,
+						Key: objectKey,
+						Body: fileStream,
+						ContentType: 'video/mp4',
+					},
+				});
+
+				const uploadResult = await upload.done();
+
+				// Clean up temp file
+				try {
+					fs.unlinkSync(tempFilePath);
+				} catch {
+					// Ignore cleanup errors
+				}
 
 				let finalUrl = uploadResult.Location;
 				if (publicUrl) {
